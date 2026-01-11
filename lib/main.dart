@@ -67,44 +67,62 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   var destinationIndex = 0;
 
-  void handleDestinationSelected(int index) => setState(() {
-    destinationIndex = index;
-  });
+  void handleDestinationSelected(int index) =>
+      setState(() {
+        destinationIndex = index;
+      });
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Scaffold(
-          body: Row(
+    var colorScheme = Theme.of(context).colorScheme;
+
+    Widget page;
+    switch (destinationIndex) {
+      case 0:
+        page = GeneratorPage();
+      case 1:
+        page = FavoritesPage();
+      default:
+        throw new UnimplementedError("no widget for $destinationIndex");
+    }
+
+    // The container for the current page, with its background color and subtle switching animation.
+    var mainArea = ColoredBox(
+      color: colorScheme.surfaceContainerHighest,
+      child: AnimatedSwitcher(
+        duration: Duration(milliseconds: 200),
+        child: page,
+      ),
+    );
+
+    return Scaffold(
+      body: LayoutBuilder(builder: (context, constraints) {
+        if (constraints.maxWidth < 450) {
+          return Column(
             children: [
-              SafeArea(
-                child: NavigationRail(
-                  extended: constraints.maxWidth >= 600,
-                  destinations: [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home),
-                      label: Text('Home'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.favorite),
-                      label: Text('Favorites'),
-                    ),
-                  ],
-                  selectedIndex: destinationIndex,
-                  onDestinationSelected: handleDestinationSelected,
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: [GeneratorPage(), FavoritesPage()][destinationIndex],
-                ),
-              ),
+              Expanded(child: mainArea),
+              SafeArea(child:
+              BottomNavigationBar(items: [
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.favorite), label: "Favorites"),
+              ],
+              onTap: handleDestinationSelected,
+              currentIndex: destinationIndex))
             ],
-          ),
-        );
-      },
+          );
+        } else {
+          return Row(
+            children: [
+              SafeArea(child: NavigationRail(destinations: [
+                NavigationRailDestination(icon: Icon(Icons.home), label: Text("Home"),),
+                NavigationRailDestination(icon: Icon(Icons.favorite), label: Text("Favorites"),),
+              ], selectedIndex: destinationIndex, onDestinationSelected: handleDestinationSelected,)),
+              Expanded(child: mainArea)
+            ],
+          );
+        }
+      }),
     );
   }
 }
@@ -133,10 +151,11 @@ class GeneratorPage extends StatelessWidget {
                     if (appState.isFavorite()) ...[
                       Icon(Icons.favorite_border),
                       Text("Unlike"),
-                    ] else ...[
-                      Icon(Icons.favorite),
-                      Text("Like"),
-                    ],
+                    ] else
+                      ...[
+                        Icon(Icons.favorite),
+                        Text("Like"),
+                      ],
                   ],
                 ),
               ),
@@ -154,7 +173,8 @@ class FavoritesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
     var title =
-        "You have ${appState.favorites.length} favorite${appState.favorites.length != 1 ? "s" : ""}:";
+        "You have ${appState.favorites.length} favorite${appState.favorites
+        .length != 1 ? "s" : ""}:";
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
